@@ -9,5 +9,5 @@ class JSONCodec:
         return json.dumps(obj).encode('utf-8')
 
     @staticmethod
-    def decode(data: bytes):
+    def decode(data: bytes) -> Any:
         return json.loads(data.decode('utf-8'))
