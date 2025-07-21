@@ -31,4 +31,4 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("[*] 服务中断退出")
     except Exception as e:
-        print("[*] 服务启动异常")
+        print(f"[*] 服务启动异常: {e}")
