@@ -7,10 +7,11 @@ from muxp.comm.security import Signature
 
 
 address = ('127.0.0.1', 8443)
-auth = Auth()
-auth.cafile = "certs/ssl/ca.crt"
-auth.keyfile = "certs/ssl/client.key"
-auth.certfile = "certs/ssl/client.crt"
+auth = Auth(
+    cafile="certs/ssl/ca.crt",
+    keyfile="certs/ssl/client.key",
+    certfile="certs/ssl/client.crt")
+
 
 if __name__ == '__main__':
     client = MuxpClient(

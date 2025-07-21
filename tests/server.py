@@ -5,10 +5,10 @@ from muxp.comm.security import Signature
 
 
 address = ('0.0.0.0', 8443)
-auth = Auth()
-auth.cafile = "certs/ssl/ca.crt"
-auth.keyfile = "certs/ssl/server.key"
-auth.certfile = "certs/ssl/server.crt"
+auth = Auth(
+    cafile="certs/ssl/ca.crt",
+    keyfile="certs/ssl/client.key",
+    certfile="certs/ssl/client.crt")
 
 
 def echo_handler(data: bytes) -> bytes:

@@ -1,6 +1,8 @@
 import ssl
+from dataclasses import dataclass
 
 
+@dataclass
 class Auth:
     certfile: str
     keyfile: str
