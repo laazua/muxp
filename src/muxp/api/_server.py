@@ -1,3 +1,4 @@
+import socket
 import socketserver
 from typing import Tuple
 
@@ -34,6 +35,8 @@ class MuxpServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         context = ssl_server_context(auth)
         self.handle_message = handler_func
         super().__init__(server_address, MuxHandler)
+        # 设置端口重用
+        self.socket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         self.socket = context.wrap_socket(self.socket, server_side=True)
 
 
