@@ -1,11 +1,9 @@
-from muxp.comm import Auth
-from muxp.comm import JSONCodec
-from muxp.api import run_server
-from muxp.comm.security import Signature
+import muxp
+from muxp import Signature, JSONCodec, Mode
 
 
 address = ('0.0.0.0', 8443)
-auth = Auth(
+auth = muxp.Auth(
     cafile="certs/ssl/ca.crt",
     keyfile="certs/ssl/client.key",
     certfile="certs/ssl/client.crt")
@@ -27,7 +25,7 @@ def echo_handler(data: bytes) -> bytes:
 
 if __name__ == '__main__':
     try:
-        run_server(address, auth, echo_handler)
+        muxp.run(address, echo_handler, mode=Mode.THREADPOOL, auth=None)
     except KeyboardInterrupt:
         print("[*] 服务中断退出")
     except Exception as e:
