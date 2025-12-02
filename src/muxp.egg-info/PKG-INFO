@@ -1,0 +1,25 @@
+Metadata-Version: 2.4
+Name: muxp
+Version: 0.1.0
+Summary: 一个支持TLS双向认证与粘包处理的通信框架
+Author: laazua
+Keywords: tls,socket,ssl,python
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+
+### muxp
+
+- 开发
+1. 让测试tests目录可以导入项目包:  
+   python -m pip install -e .
+
+- 说明
+1. python 标准库实现的socket编程
+2. 基于标准库ssl + socketserver
+
+- 打包:
+1. python -m pip install --upgrade build
+2. python -m build 
+
