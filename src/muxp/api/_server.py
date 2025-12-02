@@ -1,4 +1,5 @@
 import enum
+import logging
 import socket
 import socketserver
 import asyncio
@@ -7,6 +8,26 @@ import threading
 from typing import Tuple, Callable, Optional
 from concurrent.futures import ThreadPoolExecutor
 from ..comm import Auth, encode_data, decode_data, ssl_server_context
+
+
+logger = logging.getLogger('mux')
+# 设置日志级别
+logger.setLevel(logging.DEBUG)
+# 创建控制台处理器
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+# 创建格式化器
+formatter = logging.Formatter(
+    '%(asctime)s | %(name)s | %(levelname)s | %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+# 为处理器设置格式化器
+console_handler.setFormatter(formatter)
+# 为日志器添加处理器
+logger.addHandler(console_handler)
+# 避免日志向上传播（防止重复记录）
+logger.propagate = False
+
 
 ###############################################################################
 # 运行模式
@@ -47,7 +68,7 @@ class MuxHandler(socketserver.BaseRequestHandler):
                     break
                 buffer += data
                 if len(buffer) > MAX_BUFFER_SIZE:
-                    print("[!] buffer too large, closing")
+                    logger.warning("[!] buffer too large, closing")
                     break
                 msgs, buffer = decode_data(buffer)
                 for msg in msgs:
@@ -56,14 +77,14 @@ class MuxHandler(socketserver.BaseRequestHandler):
                         if resp is not None:
                             sock.sendall(encode_data(resp))
                     except Exception as be:
-                        print(f"[业务异常] {be}")
+                        logger.error(f"[业务异常] {be}")
                         traceback.print_exc()
             except socket.timeout:
                 break
             except ConnectionResetError:
                 break
             except Exception as e:
-                print(f"[socket error] {e}")
+                logger.error(f"[socket error] {e}")
                 traceback.print_exc()
                 break
 
@@ -105,7 +126,7 @@ class ThreadingMuxpServer(socketserver.ThreadingMixIn, BaseMuxpServer, socketser
     
     def __init__(self, addr, handler_func: Callable, auth: Optional[Auth] = None):
         super().__init__(addr, handler_func, auth)
-        print(f"[*] ThreadingMixIn 服务器已初始化，最大线程数受限于系统")
+        logger.info(f"[*] ThreadingMixIn 服务器已初始化，最大线程数受限于系统")
 
 ###############################################################################
 # 2) ThreadPool 服务器（生产环境推荐）
@@ -126,7 +147,7 @@ class ThreadPoolMixIn:
             with self._pool_lock:
                 if self._pool is None:
                     self._pool = ThreadPoolExecutor(max_workers=self.max_workers)
-                    print(f"[*] 线程池已创建，最大工作线程数: {self.max_workers}")
+                    logger.info(f"[*] 线程池已创建，最大工作线程数: {self.max_workers}")
     
     def process_request(self, request, client_address):
         with self._pending_lock:
@@ -135,7 +156,7 @@ class ThreadPoolMixIn:
                     request.close()
                 except:
                     pass
-                print(f"[!] 连接队列已满，拒绝连接 {client_address}")
+                logger.warning(f"[!] 连接队列已满，拒绝连接 {client_address}")
                 return
             self._pending_count += 1
         
@@ -161,10 +182,10 @@ class ThreadPoolMixIn:
     def server_close(self):
         if self._pool:
             try:
-                print("[*] 正在关闭线程池...")
+                logger.info("[*] 正在关闭线程池...")
                 self._pool.shutdown(wait=True)
             except Exception as e:
-                print(f"[!] 关闭线程池出错: {e}")
+                logger.error(f"[!] 关闭线程池出错: {e}")
             finally:
                 self._pool = None
         try:
@@ -185,7 +206,7 @@ class ThreadPoolMuxpServer(ThreadPoolMixIn, BaseMuxpServer, socketserver.TCPServ
     
     def __init__(self, addr, handler_func: Callable, auth: Optional[Auth] = None):
         super().__init__(addr, handler_func, auth)
-        print(f"[*] ThreadPool 服务器已初始化，最大线程数: {self.max_workers}, 最大等待队列: {self.max_pending}")
+        logger.info(f"[*] ThreadPool 服务器已初始化，最大线程数: {self.max_workers}, 最大等待队列: {self.max_pending}")
 
 ###############################################################################
 # 3) asyncio + TLS 服务器（高性能）
@@ -242,7 +263,7 @@ class AsyncioMuxpServer:
             reuse_address=True,
         )
         mode = "TLS" if self.ssl_ctx else "TCP"
-        print(f"[*] asyncio muxp {mode} 服务器监听在 {self.addr}")
+        logger.info(f"[*] asyncio muxp {mode} 服务器监听在 {self.addr}")
         async with self._server:
             await self._server.serve_forever()
     
@@ -261,15 +282,15 @@ def run(
     auth: Optional[Auth] = None,
 ):
     if mode == Mode.THREADING:
-        print(f"[*] 使用 ThreadingMixIn 启动 muxp 服务器 {address}")
+        logger.info(f"[*] 使用 ThreadingMixIn 启动 muxp 服务器 {address}")
         srv = ThreadingMuxpServer(address, handler_func, auth)
         srv.serve_forever()
     elif mode == Mode.THREADPOOL:
-        print(f"[*] 使用 ThreadPoolExecutor 启动 muxp 服务器 {address}")
+        logger.info(f"[*] 使用 ThreadPoolExecutor 启动 muxp 服务器 {address}")
         srv = ThreadPoolMuxpServer(address, handler_func, auth)
         srv.serve_forever()
     elif mode == Mode.ASYNCIO:
-        print(f"[*] 使用 asyncio + TLS 启动 muxp 服务器 {address}")
+        logger.info(f"[*] 使用 asyncio + TLS 启动 muxp 服务器 {address}")
         server = AsyncioMuxpServer(address, handler_func, auth)
         asyncio.run(server.start())
     else:
